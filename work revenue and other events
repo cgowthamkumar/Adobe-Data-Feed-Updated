@@ -1,0 +1,9 @@
+SELECT a.date,sum(a.e10) AS e81
+  FROM ( SELECT adobe_sc_omniture_hub_v3.username, to_char( date_trunc('month',adobe_sc_omniture_hub_v3.date_time::timestamp)::timestamp without time zone, 'YYYY-MM-DD'::character varying::text) AS date,
+                   CASE
+                        WHEN length(adobe_sc_omniture_hub_v3.post_product_list::text) > 10 THEN split_part((split_part(adobe_sc_omniture_hub_v3.post_product_list),',',1),';',4)::int
+                        ELSE 0
+                   END AS e10
+                   FROM omniture_mt.adobe_sc_omniture_hub_v3
+                  WHERE adobe_sc_omniture_hub_v3.exclude_hit::text = '0'::character varying::text AND adobe_sc_omniture_hub_v3.hit_source::integer <> 5 AND adobe_sc_omniture_hub_v3.hit_source::integer <> 8 AND adobe_sc_omniture_hub_v3.hit_source::integer <> 7 AND adobe_sc_omniture_hub_v3.hit_source::integer <> 9 ) a
+   GROUP BY date;
