@@ -1,0 +1,64 @@
+SELECT t.date , t.evar , t.inst , t.e1 , t.e6 , t.e14 , t.e16 , t.e19 , t.e25 , e28 , t.e38 , t.e74 , t.e81
+    FROM ( SELECT date, evar, inst ,e1, e6, e14, e16, e19, e25, e28, e38, e74, e81, row_number() over(partition by date order by inst desc) as st
+        FROM ( SELECT a.date, a.evar , sum(a.instances) AS inst , sum(a.e1) AS e1, sum(a.e2) AS e6, sum(a.e3) AS e14, sum(a.e4) AS e16, sum(a.e5) AS e19, sum(a.e6) AS e25, sum(a.e7) AS e28, sum(a.e8) AS e38, sum(a.e9) AS e74, sum(a.e10) AS e81
+                FROM ( SELECT adobe_sc_omniture_hub_v3.username, adobe_sc_omniture_hub_v3.post_evar11_year_new_or_used_make_model as evar , to_char( date_trunc('month',adobe_sc_omniture_hub_v3.date_time::timestamp)::timestamp without time zone, 'YYYY-MM-DD'::character varying::text) AS date,
+                               CASE
+                                    WHEN adobe_sc_omniture_hub_v3.post_event_list::text ~~ '%,200,%' THEN 1
+                                    WHEN adobe_sc_omniture_hub_v3.post_event_list::text ~~ '200,%' THEN 1
+                                    ELSE 0
+                               END AS e1,
+                               CASE
+                                WHEN adobe_sc_omniture_hub_v3.post_event_list::text ~~ '%,110,%' THEN 1
+                                WHEN adobe_sc_omniture_hub_v3.post_event_list::text ~~ '110,%' THEN 1
+                                ELSE 0
+                            END AS instances,
+                               CASE
+                                    WHEN adobe_sc_omniture_hub_v3.post_event_list::text ~~ '%,205,%' THEN 1
+                                    WHEN adobe_sc_omniture_hub_v3.post_event_list::text ~~ '205,%' THEN 1
+                                    ELSE 0
+                               END AS e2,
+                               CASE
+                                    WHEN adobe_sc_omniture_hub_v3.post_event_list::text ~~ '%,213,%' THEN 1
+                                    WHEN adobe_sc_omniture_hub_v3.post_event_list::text ~~ '213,%' THEN 1
+                                    ELSE 0
+                               END AS e3,
+                               CASE
+                                    WHEN adobe_sc_omniture_hub_v3.post_event_list::text ~~ '%,215,%' THEN 1
+                                    WHEN adobe_sc_omniture_hub_v3.post_event_list::text ~~ '215,%' THEN 1
+                                    ELSE 0
+                               END AS e4,
+                               CASE
+                                    WHEN adobe_sc_omniture_hub_v3.post_event_list::text ~~ '%,218,%' THEN 1
+                                    WHEN adobe_sc_omniture_hub_v3.post_event_list::text ~~ '218,%' THEN 1
+                                    ELSE 0
+                               END AS e5,
+                               CASE
+                                    WHEN adobe_sc_omniture_hub_v3.post_event_list::text ~~ '%,224,%' THEN 1
+                                    WHEN adobe_sc_omniture_hub_v3.post_event_list::text ~~ '224,%' THEN 1
+                                    ELSE 0
+                               END AS e6,
+                               CASE
+                                    WHEN adobe_sc_omniture_hub_v3.post_event_list::text ~~ '%,227,%' THEN 1
+                                    WHEN adobe_sc_omniture_hub_v3.post_event_list::text ~~ '227,%' THEN 1
+                                    ELSE 0
+                               END AS e7,
+                               CASE
+                                    WHEN adobe_sc_omniture_hub_v3.post_event_list::text ~~ '%,237,%' THEN 1
+                                    WHEN adobe_sc_omniture_hub_v3.post_event_list::text ~~ '237,%' THEN 1
+                                    ELSE 0
+                               END AS e8,
+                               CASE
+                                    WHEN adobe_sc_omniture_hub_v3.post_event_list::text ~~ '%,273,%' THEN 1
+                                    WHEN adobe_sc_omniture_hub_v3.post_event_list::text ~~ '273,%' THEN 1
+                                    ELSE 0
+                               END AS e9,
+                               CASE
+                                    WHEN adobe_sc_omniture_hub_v3.post_event_list::text ~~ '%,280,%' THEN 1
+                                    WHEN adobe_sc_omniture_hub_v3.post_event_list::text ~~ '280,%' THEN 1
+                                    ELSE 0
+                               END AS e10
+                               FROM omniture_mt.adobe_sc_omniture_hub_v3
+                              WHERE adobe_sc_omniture_hub_v3.exclude_hit::text = '0'::character varying::text AND adobe_sc_omniture_hub_v3.hit_source::integer <> 5 AND adobe_sc_omniture_hub_v3.hit_source::integer <> 8 AND adobe_sc_omniture_hub_v3.hit_source::integer <> 7 AND adobe_sc_omniture_hub_v3.hit_source::integer <> 9 ) a
+                GROUP BY date , evar
+                ORDER BY date , evar ) ) t
+   WHERE t.st <= 20;
