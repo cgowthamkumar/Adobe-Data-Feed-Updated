@@ -1,0 +1,33 @@
+CREATE OR REPLACE VIEW omniture_mt.ad_maintainance_vw_2
+(
+  "year-month",
+  "ip address",
+  country,
+  "page views",
+  visits,
+  "pageviews per vist"
+)
+AS 
+ SELECT t."month" AS "year-month", t.ipadd AS "ip address", t.country, t.pageviews AS "page views", t.visits, t.pvv AS "pageviews per vist"
+   FROM ( SELECT t."month", t.ipadd, t.country, t.pageviews, t.visits, t.pvv, pg_catalog.row_number()
+          OVER( 
+          PARTITION BY t."month"
+          ORDER BY t.pvv DESC) AS st
+           FROM ( SELECT (split_part(a.date, '-'::text, 1) || '-'::text) || split_part(a.date, '-'::text, 2) AS "month", a.ip_address AS ipadd, a.country, sum(a.pageviews) AS pageviews, count(DISTINCT ((a.post_visid_low::character varying::text || a.post_visid_high::character varying::text) || a.visit_num::character varying::text) || a.visit_start_time_gmt::text) AS visits, sum(a.pageviews) / 
+                        CASE
+                            WHEN count(DISTINCT ((a.post_visid_low::character varying::text || a.post_visid_high::character varying::text) || a.visit_num::character varying::text) || a.visit_start_time_gmt::text) = 0 THEN NULL::bigint
+                            ELSE count(DISTINCT ((a.post_visid_low::character varying::text || a.post_visid_high::character varying::text) || a.visit_num::character varying::text) || a.visit_start_time_gmt::text)
+                        END AS pvv
+                   FROM ( SELECT h.username, h.post_visid_low, h.post_visid_high, h.visit_num, h.visit_start_time_gmt, to_char(h.date_time::timestamp without time zone, 'YYYY-MM-DD'::character varying::text) AS date, h.post_evar32_ip_address AS ip_address, l.lookup_value AS country, 
+                                CASE
+                                    WHEN h.post_page_event = 0 THEN 1
+                                    ELSE 0
+                                END AS pageviews
+                           FROM omniture_mt.adobe_sc_omniture_hub_v3 h
+                      JOIN omniture_mt.lookup_country l ON l.lookup_id::character varying::text = h.country::text AND l.import_date::character varying::text = to_char(h.date_time::timestamp without time zone, 'YYYY-MM-DD'::character varying::text)::character varying::text
+                     WHERE h.exclude_hit::text = '0'::character varying::text AND h.hit_source::integer <> 5 AND h.hit_source::integer <> 8 AND h.hit_source::integer <> 9) a
+                  GROUP BY (split_part(a.date, '-'::text, 1) || '-'::text) || split_part(a.date, '-'::text, 2), a.ip_address, a.country
+                  ORDER BY (split_part(a.date, '-'::text, 1) || '-'::text) || split_part(a.date, '-'::text, 2), a.ip_address, a.country) t) t
+  WHERE t.st <= 100;
+
+COMMIT;
