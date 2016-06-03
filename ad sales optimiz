@@ -1,0 +1,39 @@
+CREATE OR REPLACE VIEW omniture_mt.ad_sales_optimization_vw_2
+(
+  "year-month",
+  "page name",
+  "page views",
+  visits,
+  entries,
+  "bounce rate",
+  "ad clicks"
+)
+AS 
+ SELECT (split_part(a.date, '-'::text, 1) || '-'::text) || split_part(a.date, '-'::text, 2) AS "year-month", a.pagename AS "page name", sum(a.pageviews) AS "page views", count(DISTINCT b.uuid) AS visits, sum(a.entries) AS entries, round((sum(b.exit) * 100)::double precision / count(DISTINCT b.uuid)::double precision, 2::numeric::numeric(18,0)) AS "bounce rate", sum(a.ad_click_e25) AS "ad clicks"
+   FROM ( SELECT adobe_sc_omniture_hub_v3.username, adobe_sc_omniture_hub_v3.post_visid_low, adobe_sc_omniture_hub_v3.post_visid_high, adobe_sc_omniture_hub_v3.visit_num, adobe_sc_omniture_hub_v3.visit_start_time_gmt, to_char(adobe_sc_omniture_hub_v3.date_time::timestamp without time zone, 'YYYY-MM-DD'::character varying::text) AS date, adobe_sc_omniture_hub_v3.post_evar1_page_name AS pagename, 
+                CASE
+                    WHEN adobe_sc_omniture_hub_v3.post_page_event = 0 THEN 1
+                    ELSE 0
+                END AS pageviews, 
+                CASE
+                    WHEN adobe_sc_omniture_hub_v3.post_event_list::text ~~ '%224%'::character varying::text THEN 1
+                    ELSE 0
+                END AS ad_click_e25, 
+                CASE
+                    WHEN adobe_sc_omniture_hub_v3.visit_page_num::text = 1::text THEN 1
+                    ELSE 0
+                END AS entries
+           FROM omniture_mt.adobe_sc_omniture_hub_v3
+          WHERE adobe_sc_omniture_hub_v3.exclude_hit::text = '0'::character varying::text AND adobe_sc_omniture_hub_v3.hit_source::integer <> 5 AND adobe_sc_omniture_hub_v3.hit_source::integer <> 8 AND adobe_sc_omniture_hub_v3.hit_source::integer <> 9) a
+   JOIN ( SELECT adobe_sc_omniture_hub_v3.post_visid_low::character varying AS post_visid_low, adobe_sc_omniture_hub_v3.post_visid_high::character varying AS post_visid_high, adobe_sc_omniture_hub_v3.visit_num::character varying AS visit_num, adobe_sc_omniture_hub_v3.visit_start_time_gmt, to_char(adobe_sc_omniture_hub_v3.date_time::timestamp without time zone, 'YYYY-MM-DD'::character varying::text) AS date, ((adobe_sc_omniture_hub_v3.post_visid_low::character varying::text || adobe_sc_omniture_hub_v3.post_visid_high::character varying::text) || adobe_sc_omniture_hub_v3.visit_num::character varying::text) || adobe_sc_omniture_hub_v3.visit_start_time_gmt::text AS uuid, min(adobe_sc_omniture_hub_v3.visit_page_num::text) AS entry, 
+                CASE
+                    WHEN "max"(adobe_sc_omniture_hub_v3.visit_page_num::text) = 1::character varying::text THEN 1
+                    ELSE 0
+                END AS exit
+           FROM omniture_mt.adobe_sc_omniture_hub_v3
+          WHERE adobe_sc_omniture_hub_v3.exclude_hit::text = '0'::character varying::text AND adobe_sc_omniture_hub_v3.hit_source::integer <> 5 AND adobe_sc_omniture_hub_v3.hit_source::integer <> 7 AND adobe_sc_omniture_hub_v3.hit_source::integer <> 8 AND adobe_sc_omniture_hub_v3.hit_source::integer <> 9
+          GROUP BY adobe_sc_omniture_hub_v3.post_visid_low::character varying, adobe_sc_omniture_hub_v3.post_visid_high::character varying, adobe_sc_omniture_hub_v3.visit_num::character varying, adobe_sc_omniture_hub_v3.visit_start_time_gmt, to_char(adobe_sc_omniture_hub_v3.date_time::timestamp without time zone, 'YYYY-MM-DD'::character varying::text), ((adobe_sc_omniture_hub_v3.post_visid_low::character varying::text || adobe_sc_omniture_hub_v3.post_visid_high::character varying::text) || adobe_sc_omniture_hub_v3.visit_num::character varying::text) || adobe_sc_omniture_hub_v3.visit_start_time_gmt::text) b ON a.date = b.date AND a.post_visid_low::character varying::text = b.post_visid_low::text AND a.post_visid_high::character varying::text = b.post_visid_high::text AND a.visit_num::character varying::text = b.visit_num::text AND a.visit_start_time_gmt::text = b.visit_start_time_gmt::text
+  GROUP BY (split_part(a.date, '-'::text, 1) || '-'::text) || split_part(a.date, '-'::text, 2), a.pagename
+  ORDER BY (split_part(a.date, '-'::text, 1) || '-'::text) || split_part(a.date, '-'::text, 2), a.pagename;
+
+COMMIT;
