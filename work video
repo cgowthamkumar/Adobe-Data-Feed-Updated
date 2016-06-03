@@ -1,0 +1,25 @@
+SELECT (split_part(a.date,'-',1)||'-'||split_part(a.date,'-',2)) AS month, a.video_category AS Video_category,/* a.video_name */ sum(a.video_views_e27) AS video_views_e27, sum(a.video_milestone_25_e30) AS video_milestone_25_e30, sum(a.video_milestone_50_e31) AS video_milestone_50_e31, sum(a.video_milestone_75_e32) AS video_milestone_75_e32, sum(a.video_milestone_completes_e28) AS video_milestone_completes_e28
+   FROM ( SELECT adobe_sc_omniture_hub_v3.username, to_char(adobe_sc_omniture_hub_v3.date_time::timestamp without time zone, 'YYYY-MM-DD'::text) AS date, adobe_sc_omniture_hub_v3.post_evar53_video_content_type AS video_category , adobe_sc_omniture_hub_v3.post_evar51_video_name AS video_name,
+                CASE
+                    WHEN adobe_sc_omniture_hub_v3.post_event_list::text ~~ '%226%'::text THEN 1
+                    ELSE 0
+                END AS video_views_e27, 
+                CASE
+                    WHEN adobe_sc_omniture_hub_v3.post_event_list::text ~~ '%229%'::text THEN 1
+                    ELSE 0
+                END AS video_milestone_25_e30, 
+                CASE
+                    WHEN adobe_sc_omniture_hub_v3.post_event_list::text ~~ '%230%'::text THEN 1
+                    ELSE 0
+                END AS video_milestone_50_e31, 
+                CASE
+                    WHEN adobe_sc_omniture_hub_v3.post_event_list::text ~~ '%231%'::text THEN 1
+                    ELSE 0
+                END AS video_milestone_75_e32, 
+                CASE
+                    WHEN adobe_sc_omniture_hub_v3.post_event_list::text ~~ '%227%'::text THEN 1
+                    ELSE 0
+                END AS video_milestone_completes_e28
+           FROM omniture_mt.adobe_sc_omniture_hub_v3
+          WHERE adobe_sc_omniture_hub_v3.exclude_hit::text = '0'::text AND adobe_sc_omniture_hub_v3.hit_source::integer <> 5 AND adobe_sc_omniture_hub_v3.hit_source::integer <> 8 AND adobe_sc_omniture_hub_v3.hit_source::integer <> 9) a
+  GROUP BY month, Video_category /*a.video_name*/;
