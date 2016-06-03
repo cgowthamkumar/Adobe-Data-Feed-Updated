@@ -1,0 +1,13 @@
+SELECT t.month, t.pageurl, t.pageviews, t.visits
+  FROM ( SELECT t.month, t.pageurl, t.pageviews, t.visits, row_number() over(partition by t.month order by t.pageviews desc) as st
+  FROM ( SELECT (split_part(a.date,'-',1)||'-'||split_part(a.date,'-',2)) AS month, a.page_url as pageurl, sum(a.pageviews) AS pageviews, count(DISTINCT ((a.post_visid_low::character varying::text || a.post_visid_high::character varying::text) || a.visit_num::character varying::text) || a.visit_start_time_gmt::text) AS visits
+     FROM ( SELECT h.username, h.post_visid_low, h.post_visid_high, h.visit_num, h.visit_start_time_gmt, to_char(h.date_time::timestamp without time zone, 'YYYY-MM-DD'::text) AS date, h.post_evar43_page_url AS page_url,
+                  CASE
+                      WHEN h.post_page_event = 0 THEN 1
+                      ELSE 0
+                  END AS pageviews
+             FROM omniture_mt.adobe_sc_omniture_hub_v1 h
+        WHERE h.exclude_hit::text = '0'::text AND h.hit_source::integer <> 5 AND h.hit_source::integer <> 8 AND h.hit_source::integer <> 9) a
+  GROUP BY month, pageurl
+  ORDER BY month, pageurl) t ) t
+  WHERE t.st <= 100;
